@@ -58,9 +58,14 @@ X1 = np.array(x1);
 X0 = np.concatenate((X0, np.ones((X0.shape[0],1), dtype=np.float)),1);
 X0p = np.concatenate((X1, np.ones((X1.shape[0],1), dtype=np.float)),1);
 
-F01 = np.zeros([3,3]);
+m = X0.shape[0];
+X01 = np.zeros([m,9]);
 for i in range(X0.shape[0]):
-    F01 = F01 + np.multiply(np.matrix(X0[i]).transpose(), np.matrix(X0p[i]))  
+    X01[i,:] = np.kron(X0p[i], X0[i])  
+
+U, S, V = linalg.svd(X01);
+F01 = np.reshape(V[8,:],[3,3]);
+
 
 #find correspondence from image1 to image2
 x1 = [];
@@ -78,10 +83,14 @@ X1 = np.concatenate((X1, np.ones((X1.shape[0],1), dtype=np.float)),1);
 X1p = np.concatenate((X2, np.ones((X2.shape[0],1), dtype=np.float)),1);
 
 # get the fundamental matrix from image1 to image2
-F12 = np.zeros([3,3]);
-for i in range(X1.shape[0]):
+m = X1.shape[0]
+X12 = np.zeros([m,9]);
+for i in range(m):
     # each is expanded by kronecker product of correspondent points
-    F12 = F12 + np.kron(np.matrix(X1[i]).transpose(), np.matrix(X1p[i]))
+    X12[i,:] = np.kron(np.matrix(X1[i]), np.matrix(X1p[i]))    
+
+U, S, V = linalg.svd(X12);
+F12 = np.reshape(V[8,:], [3,3])
 
 # get the calibration matrix in P   
 f = 14.67e-3; pixel_length = 12e-6;
@@ -89,11 +98,13 @@ sx = 1024*pixel_length; sy = 1024*pixel_length;
 ox = sx / 2; oy = sy / 2;
 
 Ks = np.array([[sx,0,ox],[0,sy,oy],[0,0,1]]);
-P = np.matrix(Ks);
+Pi = np.array([[f,0,0],[0,f,0],[0,0,1]]);
+P = np.matrix(Ks)*np.matrix(Pi);
 
 # get the essential matrix
-E01 = P.transpose()*F01*P;
-E12 = P.transpose()*F12*P;
+E01 = P.I.transpose()*F01*P.I;
+E12 = P.I.transpose()*F12*P.I;
+
 
 # compute the SVD of essential matrix and get the t
 U01, S01, Vh01 = linalg.svd(E01)
@@ -121,49 +132,4 @@ vY = ty / tz * (h2-h1)/3.75;
 vH = np.sqrt(vX**2 + vY**2);
 print 'The horizonal speed estimated from 1766-1983 is: %f\n (x-axis speed %f, y-axis speed %f)'%(vH, vX, vY)
 print '----------------------------------------------'
-print 'Conclusion: we need to open the airbag, the speed is higher than 40m/s'
-print '(if we have two airbags for x and y respectively, we should open the one for y-axis)'
-
-
-
-
-
-
-
-#H01 = np.matrix(H01);
-#H02 = np.matrix(H02);
-#P_pinv = linalg.pinv(P)
-#
-#Affine01 = h0 / h1 * P_pinv*H01*P
-#A01 = Affine01[0:3][:,0:3];
-#print A01
-# 
-#Affine02 = h0 / h2 * P_pinv*H02*P
-#A02 = Affine02[0:3][:,0:3];
-#print A02
-#
-##
-##show the images with feature points
-#cv2.namedWindow("Spirit1983")
-#cv2.imshow("Spirit1983",img0)
-#cv2.waitKey(0);
-#
-#cv2.namedWindow("Spirit1706")
-#cv2.imshow("Spirit1706",img1)
-#cv2.waitKey(0);
-#
-#cv2.namedWindow("Spirit1433")
-#cv2.imshow("Spirit1433",img2)
-#cv2.waitKey(0);
-#
-##show the wrapped pictures
-#cv2.namedWindow("1983->1706")
-#cv2.imshow("1983->1706",imgw01)
-#cv2.waitKey(0);
-#
-#cv2.namedWindow("1983->1433")
-#cv2.imshow("1983->1433",imgw02)
-#cv2.waitKey(0);
-#
-#cv2.destroyAllWindows();
-#print 'The speed is too large so we must let it slow down'
+print 'Conclusion: we do NOT need to open the airbag, the speed is smaller than 40m/s'
