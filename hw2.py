@@ -111,6 +111,7 @@ U01, S01, Vh01 = linalg.svd(E01)
 S01 = np.matrix(S01);
 V01 = Vh01.T;
 S = np.matrix('1.0 0.0 0.0; 0.0 1.0 0.0; 0.0 0.0 0.0');
+S[0,0] = S01[0,0]; S[1,1] = S01[0,1];
 W = np.matrix('0.0 -1.0 0.0; 1.0 0.0 0.0; 0.0 0.0 1.0');
 t01 = np.matrix(V01) * W * S * np.matrix(Vh01);
 
@@ -124,6 +125,8 @@ print 'The horizonal speed estimated from 1433-1766 is: %f\n (x-axis speed %f, y
 
 # rescale the translation vector t wrt h1-h0 and compute the speed
 U12, S12, Vh12 = linalg.svd(E12)
+S12 = np.matrix(S12);
+S[0,0] = S12[0,0]; S[1,1] = S12[0,1];
 V12 = Vh12.T;
 t12 = V12 * W * S * Vh12;
 tz = t12[1,0]; tx = t12[0,2]; ty = t12[2,1];
