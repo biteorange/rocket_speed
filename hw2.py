@@ -36,7 +36,6 @@ keypoints2, desc2 = extractor.compute(img2_gray, keypoints2);
 
 
 #find correspondence, find 0->1 and 0->2. 
-#the result of 1->2 not optimistic due to less overlapping 
 flann_params= {'algorithm':6,'table_number':6,'key_size':1,'multi_probe_level':1}
 matcher = cv2.FlannBasedMatcher(flann_params,{});
 matches01 = matcher.match(desc0,desc1);
@@ -60,7 +59,7 @@ X0p = np.concatenate((X1, np.ones((X1.shape[0],1), dtype=np.float)),1);
 
 m = X0.shape[0];
 X01 = np.zeros([m,9]);
-for i in range(X0.shape[0]):
+for i in range(m):
     X01[i,:] = np.kron(X0p[i], X0[i])  
 
 U, S, V = linalg.svd(X01);
@@ -94,45 +93,42 @@ F12 = np.reshape(V[8,:], [3,3])
 
 # get the calibration matrix in P   
 f = 14.67e-3; pixel_length = 12e-6;
-sx = 1024*pixel_length; sy = 1024*pixel_length;
-ox = sx / 2; oy = sy / 2;
+sx = pixel_length; sy = pixel_length;
+ox = 412; oy = 412;
 
-Ks = np.array([[sx,0,ox],[0,sy,oy],[0,0,1]]);
-Pi = np.array([[f,0,0],[0,f,0],[0,0,1]]);
-P = np.matrix(Ks)*np.matrix(Pi);
+Ks = np.array([[f/sx,0.0,ox],[0.0,f/sy,oy],[0.0,0.0,1.0]]);
+P = np.matrix(Ks);
 
 # get the essential matrix
-E01 = P.I.transpose()*F01*P.I;
-E12 = P.I.transpose()*F12*P.I;
-
+E01 = P.T*F01*P;
+E12 = P.T*F12*P;
 
 # compute the SVD of essential matrix and get the t
 U01, S01, Vh01 = linalg.svd(E01)
-S01 = np.matrix(S01);
 V01 = Vh01.T;
 S = np.matrix('1.0 0.0 0.0; 0.0 1.0 0.0; 0.0 0.0 0.0');
-S[0,0] = S01[0,0]; S[1,1] = S01[0,1];
 W = np.matrix('0.0 -1.0 0.0; 1.0 0.0 0.0; 0.0 0.0 1.0');
-t01 = np.matrix(V01) * W * S * np.matrix(Vh01);
+t01 = np.matrix(U01) * W * S * np.matrix(U01.T);
 
 # rescale the translation vector t wrt h1-h0 and compute the speed
 h0 = 1433.0; h1 = 1706.0; h2 = 1983.0;
-tz = t01[1,0]; tx = t01[0,2]; ty = t01[2,1];
-vX = tx / tz * (h1-h0)/3.75;
-vY = ty / tz * (h1-h0)/3.75;
+t01 = t01 / t01[1,0] * (h1-h0);
+tz = t01[1,0]; tx = t01[1,2]; ty = t01[0,2];
+vX = tx / 3.75;
+vY = ty / 3.75;
 vH = np.sqrt(vX**2 + vY**2);
 print 'The horizonal speed estimated from 1433-1766 is: %f\n (x-axis speed %f, y-axis speed %f)'%(vH, vX, vY)
 
-# rescale the translation vector t wrt h1-h0 and compute the speed
+# compute the translation
 U12, S12, Vh12 = linalg.svd(E12)
-S12 = np.matrix(S12);
-S[0,0] = S12[0,0]; S[1,1] = S12[0,1];
 V12 = Vh12.T;
-t12 = V12 * W * S * Vh12;
-tz = t12[1,0]; tx = t12[0,2]; ty = t12[2,1];
-vX = tx / tz * (h2-h1)/3.75;
-vY = ty / tz * (h2-h1)/3.75;
+t12 = np.matrix(U12) * W * S * np.matrix(U12.T);
+
+# rescale the translation vector t wrt h1-h0 and compute the speed
+t12 = t12 / t12[1,0] * (h2-h1);
+tz = t12[1,0]; tx = t12[1,2]; ty = t12[0,2];
+vX = tx/3.75; vY = ty/3.75;
 vH = np.sqrt(vX**2 + vY**2);
 print 'The horizonal speed estimated from 1766-1983 is: %f\n (x-axis speed %f, y-axis speed %f)'%(vH, vX, vY)
 print '----------------------------------------------'
-print 'Conclusion: we do NOT need to open the airbag, the speed is smaller than 40m/s'
+print 'Conclusion: we do NOT need to open the airbag, the speed is smaller than 80m/s'
