@@ -7,13 +7,14 @@ import cv2
 import numpy as np
 import scipy.linalg as linalg
 #import images
-img2 = cv2.imread('/home/tiansheng/Documents/12Fall/cs268/hw2/spirit1983.png');
+path = '/home/tiansheng/Documents/class/fall12/cs268/hw2/'
+img2 = cv2.imread(path+'spirit1983.png');
 img2_gray = cv2.cvtColor(img2,cv2.COLOR_BGR2GRAY);
 
-img1 = cv2.imread('/home/tiansheng/Documents/12Fall/cs268/hw2/spirit1706.png');
+img1 = cv2.imread(path+'spirit1706.png');
 img1_gray = cv2.cvtColor(img1,cv2.COLOR_BGR2GRAY);
 
-img0 = cv2.imread('/home/tiansheng/Documents/12Fall/cs268/hw2/spirit1433.png');
+img0 = cv2.imread(path+'spirit1433.png');
 img0_gray = cv2.cvtColor(img0,cv2.COLOR_BGR2GRAY);
 
 #detect features
